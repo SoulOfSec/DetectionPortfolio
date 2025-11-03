@@ -1,0 +1,13 @@
+/* Suspicious Browser Extensions – CrowdStrike FQL
+   Goal: Surface non-allowlisted extensions with risky names/permissions or sketchy patterns.
+   Notes:
+   - event_simpleName: InstalledBrowserExtension
+   - Add/maintain allowlist in data/allowlists/browser_extensions_allowlist.csv
+*/
+
+#event_simpleName = InstalledBrowserExtension 
+//below is normal or expected extensions
+| !in(field="BrowserExtensionId", values=["bnloapiedmegfapoomlbhpnkipeekgfo", "ghbmnnjooekpmoecnnnilnnbdlolhkhi", "jjkchpdmjjdmalgembblgafllbpcjlei", "jmjflgjpcpepeafmmgdpfkogkghcpiha", "efaidnbmnnnibpcajpcglclefindmkaj", "cpbdlogdokiacaifpokijfinplmdiapa", "bfgjjammlemhdcocpejaompfoojnjjfn","felcaaldnbdncclmgdcncolpebgiejap", "pjkljhegncpnkpknbcohdijeoejaedia","apdfllckaahabafndbhieahigkjlhalf", "webcompat@mozilla.org", "nmmhkkegccagdldgiimedpiccmgmieda", "aohghmighlieiainnegkcijnfilokake", "aapocclcgogkmnckokdopfmhonfmgoek", "ikdddppdhmjcdfgilpnbkdeggoiicjgo" , "cmihkeafcknlomclapaddfljaeegfbdl", "jlhmfgmfgeifomenelglieieghnjghma"]) //remove trellix, googledocs, edge relevant changes, adobe, printerlogic, google drive,sheets,
+| table([BrowserExtensionName, BrowserExtensionId, BrowserExtensionInstallMethod, BrowserExtensionInstalledTimestamp, BrowserExtensionRequestedPermissions, BrowserExtensionPath, BrowserFileHash, BrowserProfileName, BrowserProfileId, ComputerName, UserName],limit=max)
+| BrowserExtensionRequestedPermissions = /(wallet|vpn|hack|secure|block|proxy|malware|private|.ru)/i
+| groupBy([BrowserExtensionName, BrowserExtensionId], function=[collect([BrowserExtensionInstallMethod]), count(as=ExecutionCount)], limit=20000) 
