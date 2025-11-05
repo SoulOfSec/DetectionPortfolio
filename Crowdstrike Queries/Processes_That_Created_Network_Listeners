@@ -1,0 +1,12 @@
+/*
+Description:
+Correlates process creation events with network listeners on privileged ports, identifying unexpected processes opening listening sockets (possible backdoors or reverse shells).
+
+MITRE Mapping:
+TA0002 – Execution → T1059 (Command and Scripting Interpreter)
+TA0003 – Persistence → T1053 (Scheduled Task/Job)
+TA0011 – Command and Control → T1071 (Application Layer Protocol)
+*/
+
+#event_simpleName = ProcessRollup2
+| join({#event_simpleName = NetworkListenIP4 LocalPort < 1024 LocalPort != 0}, field = TargetProcessId, key = ContextProcessId, include = [LocalAddressIP4, LocalPort])

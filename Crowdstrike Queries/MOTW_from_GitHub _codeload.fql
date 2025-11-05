@@ -1,0 +1,9 @@
+/*
+Description: Flags files with MoTW that originated from specific GitHub codeload URLs—great for dev-tooling supply-chain checks.
+MITRE: TA0002 Execution; T1204 User Execution; TA0003 Persistence (if later used as ASEP).
+*/
+
+HostUrl = /codeload\.github\.com\/FrancoK10*/i | HostUrl= /codeload\.github\.com\/Delimbo*/i
+| "#event_simpleName" = MotwWritten
+| table([@timestamp, #event_simpleName, ComputerName, FileName, FilePath, LocalAddressIP4, 
+ReferrerUrl, HostUrl, TargetFileName, aip, Tactic, Technique], limit=20000)

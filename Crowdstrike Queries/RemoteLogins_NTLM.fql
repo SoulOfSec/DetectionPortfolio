@@ -1,0 +1,18 @@
+/*
+What it does: Surfaces NTLM-based interactive/remote logons per machine/user, excluding known scanner accounts, to spot unusual accounts or movement.
+MITRE: TA0006 Credential Access; TA0008 Lateral Movement; T1550.002 Pass-the-Hash; T1078 Valid Accounts.
+*/
+
+AuthenticationPackage = "NTLM" 
+| !in(field="UserName", values=["LansweeperScanner"])
+//| Technique ="Valid Accounts, Use Alternate Authentication Material: Pass the Hash"
+| "#event_simpleName" = UserLogon
+//| table([@timestamp, #event_simpleName, AuthenticationPackage, AuthenticationId, "Agent IP", 
+ClientComputerName, ComputerName, event_platform, 
+LocalAddressIP4,LogonDomain,LogonServer,LogonType,RemoteAccount,UserName,UserLogonFlags, 
+UserIsAdmin,UserSid],limit=max)
+| groupBy([ComputerName, UserName], function=[collect([ #event_simpleName, AuthenticationPackage, "Agent 
+IP", ClientComputerName, ComputerName, event_platform, 
+LocalAddressIP4,LogonDomain,LogonServer,LogonType,RemoteAccount,UserName,UserLogonFlags, 
+UserIsAdmin,UserSid]), count(as=ExecutionCount)], limit=20000)
+//|LogonDomain = WORKGROUP

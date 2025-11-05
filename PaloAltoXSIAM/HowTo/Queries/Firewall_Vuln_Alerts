@@ -1,0 +1,11 @@
+/*
+Description:
+Summarizes external vulnerability alerts (e.g., exploit attempts) seen in firewall logs.
+MITRE: TA0043 Recon → T1595 (Active Scanning) / TA0001 Initial Access → T1190 (Exploit Public-Facing App)
+*/
+
+config case_sensitive = false
+| dataset = alerts
+| filter category = "Vulnerability" and source_zone_name = "UNTRUST"
+| iploc SourceIP loc_asn, loc_country, loc_asn_org
+| fields SourceIP, loc_country, alert_name, severity, fw_rule_name

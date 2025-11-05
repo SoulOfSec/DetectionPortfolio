@@ -1,0 +1,16 @@
+/*
+This query identifies potential reconnaissance or automated scanning activity targeting your Azure Front Door endpoints over the last 7 days.
+It flags requests with suspicious or non-standard user agents (like curl, nmap, sqlmap, etc.) and access attempts to robots.txt, a common recon indicator.
+MITRE Mapping:
+TA0043 – Reconnaissance
+T1595 – Active Scanning
+T1592 – Gather Victim Host Information
+*/
+
+AzureDiagnostics
+| where TimeGenerated >= ago(7d)
+| where Category == "FrontdoorAccessLog"
+| where userAgent_s has_any ("wget","curl","nmap","nikto", "nmap","sqlmap","python")
+    or requestUri_s endswith "robots.txt"
+| summarize RequestCount = count() by userAgent_s, socketIp_s, Resource,requestUri_s, httpMethod_s,sni_s, routingRuleName_s,httpStatusCode_s,pop_s
+//| distinct socketIp_s;

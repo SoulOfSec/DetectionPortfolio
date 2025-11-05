@@ -1,0 +1,12 @@
+/*
+Description:
+Detects inbound phishing emails that use QR-codes for credential theft.
+MITRE: TA0001 → T1566.002 (Phishing – Link)
+*/
+
+let SubjectKeywords = pack_array("authorize","authenticate","account","confirmation","QR","login","password","payment","urgent","verify");
+EmailEvents
+| where Timestamp > ago(30d) and EmailDirection=="Inbound" and DeliveryAction=="Delivered"
+| where Subject has_any (SubjectKeywords)
+| join EmailUrlInfo on NetworkMessageId
+| where UrlLocation == "QRCode"

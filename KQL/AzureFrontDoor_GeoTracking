@@ -1,0 +1,11 @@
+/*
+Description:
+Maps traffic locations to a specified URL, detecting unusual countries or spikes in access.
+MITRE: TA0043 Recon → T1590 (Gather Victim Network Information)
+*/
+
+AzureDiagnostics
+| where requestUri_s contains "{Insert URL}" or backendHostname_s contains "{URL}"
+| where Category == "FrontdoorAccessLog"
+| extend ip_location = geo_info_from_ip_address(clientIp_s)
+| project TimeGenerated, requestUri_s, userAgent_s, Country=ip_location.country, State=ip_location.state

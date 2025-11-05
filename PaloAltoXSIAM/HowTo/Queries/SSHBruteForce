@@ -1,0 +1,13 @@
+/*
+Flags excessive SSH connection attempts (≥10/hour)
+MITRE: TA0006 → T1110 (Brute Force)
+*/
+
+
+dataset = panw_ngfw_traffic_raw
+| filter from_zone = "UNTRUST"
+| filter dest_port = 22
+| iploc source_ip loc_asn, loc_country
+| bin _time span=1h timeshift = 3600 timezone = "-05:00"
+| comp count() as attempt_count by _time, source_ip, loc_asn, loc_country, from_zone, to_zone, dest_port, dest_ip, nat_dest, action
+| filter attempt_count >= 10

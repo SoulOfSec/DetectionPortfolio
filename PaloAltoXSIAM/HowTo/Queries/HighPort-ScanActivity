@@ -1,0 +1,10 @@
+/*
+Description:
+Detects possible port-scanning activity from a single host probing ≥10 ports.
+MITRE: TA0043 Reconnaissance → T1595 (Active Scanning)
+*/
+
+dataset in(panw_ngfw_traffic_raw)
+| filter dest_port in (21,22,23,115,1433,3050,3128,3306,3389,443)
+| comp count_distinct(dest_port) as TargetPort by source_ip
+| filter TargetPort >= 10

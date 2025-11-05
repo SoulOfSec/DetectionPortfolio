@@ -1,0 +1,33 @@
+/*
+Description:
+Aggregates failed GlobalProtect logins to find potential brute-force or password-spray activity from specific IPs or ASNs.
+MITRE Mapping:
+TA0006 – Credential Access → T1110 (Brute Force)
+TA0001 – Initial Access → T1133 (External Remote Services)
+*/
+
+dataset = panw_ngfw_globalprotect_raw
+| filter stage = "login"
+| filter portal contains "gp-portal"
+| filter event_id = "clientlessvpn-login"
+| filter status contains "failure"
+| comp count(_id) as attempt_count, count_distinct(source_user) as unique_users by _time, public_ip
+| filter attempt_count >= 10 and unique_users >= 3
+| iploc public_ip loc_asn, loc_country
+| comp count() as counter by loc_asn, loc_country
+| sort desc counter
+
+// Attempt to detect password spraying attack on clientless VPN
+dataset = panw_ngfw_globalprotect_raw 
+| filter stage = "login"
+| filter portal contains "gp-portal"
+| filter status contains "failure"
+| filter event_id = "clientlessvpn-login"
+| bin _time span=1h timeshift = 1615353499 timezone = "-05:00" //aggregates by hour
+| comp count(_id) as attempt_count, count_distinct(source_user) as unique_users by public_ip
+//Attempts over 10 by unique IP and targeted more than 3 users Within an hour 
+| filter attempt_count >= 10 and unique_users >= 3 
+| fields public_ip, attempt_count, unique_users 
+| dedup public_ip 
+| iploc public_ip loc_asn, loc_region, loc_continent, loc_country 
+| sort desc attempt_count

@@ -1,0 +1,12 @@
+/*
+Description:
+Flags hosts with many failed logons followed by a success → potential compromised credential.
+MITRE:
+TA0006 → T1110 (Brute Force)
+TA0005 → T1078 (Valid Accounts)
+*/
+
+DeviceLogonEvents
+| where isnotempty(RemoteIP) and AccountName !endswith "$" and RemoteIPType == "Public"
+| summarize Successful=countif(ActionType=="LogonSuccess"), Failed=countif(ActionType=="LogonFailed") by DeviceName, RemoteIP
+| where Failed > 10 and Successful > 0

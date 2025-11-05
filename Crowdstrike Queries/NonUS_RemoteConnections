@@ -1,0 +1,15 @@
+/*
+Description:
+Identifies hosts communicating with external IPs located outside the United States, helpful for detecting potential C2 or exfiltration endpoints.
+MITRE Mapping:
+TA0011 – Command and Control → T1071 (Application Layer Protocol)
+TA0010 – Exfiltration → T1041 (Exfiltration Over C2 Channel)
+*/
+
+(#event_simpleName = * or #ecs.version = *)
+| RemoteAddressIP4 = *
+| RemoteAddressIP4 != 0.0.0.0
+| RemoteAddressIP4 != 10.*.*.*
+| top(RemoteIP, limit=1000)
+| ipLocation(RemoteIP)
+| RemoteIP.country != US

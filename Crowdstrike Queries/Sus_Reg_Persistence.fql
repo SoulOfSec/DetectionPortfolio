@@ -1,0 +1,11 @@
+/*
+Description:
+Detects persistence via registry run keys or startup folder modifications (e.g., Shift.exe autostart entry in AppData).
+
+MITRE Mapping:
+
+TA0003 – Persistence → T1060 (Registry Run Keys / Startup Folder)
+*/
+
+#event_simpleName = SuspiciousRegAsepUpdate
+| table([#event_simpleName, RegObjectName, RegStringValue, RegValueName, ComputerName, Technique])
