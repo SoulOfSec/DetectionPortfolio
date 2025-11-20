@@ -1,0 +1,47 @@
+
+id: incident-resolution-distribution
+title: Incident Resolution Distribution
+status: experimental
+description: >
+  XQL query that categorizes incidents into playbook-resolved,
+  manually-resolved, and unresolved, then displays the distribution
+  using a pie chart visualization.
+
+author: "Carolina Vargas"
+date: 2025-11-20
+platform: cortex-xsiam
+query_language: xql
+
+tags:
+  - soc-analytics
+  - automation
+  - incident-metrics
+  - xsiam
+
+notes: >
+  This query visualizes how incidents are being resolved across the SOC,
+  helping measure automation effectiveness and analyst workload.
+
+query: |
+  dataset = incidents 
+  | alter Assigned_Status = if(assigned_user = NULL,"Not Assigned",assigned_user)
+  | alter Result = if(status = ENUM.NEW or status = ENUM.UNDER_INVESTIGATION, "Unresolved", "Resolved")
+  | alter resolved = if(status = ENUM.RESOLVED_AUTO_RESOLVE, "Playbook Resolved", Result = "Resolved", "Manually Resolved", "Unresolved")
+  | alter playbook = if(Result = "Playbook Resolved", 1, 0)
+  | alter manual = if(Result = "Manually Resolved", 1, 0)
+  | comp count() as Incidents by resolved  
+  |sort desc Incidents 
+  | view graph type = pie subtype = full show_callouts = `true` xaxis = resolved yaxis = Incidents valuecolor("Unresolved","rgba(242,97,97,0.61)") valuecolor("Playbook Resolved","rgba(119,56,209,0.65)") valuecolor("Manually Resolved","#a56fcc")
+
+or
+
+dataset = incidents 
+| alter Assigned_Status = if(assigned_user = NULL,"Not Assigned",assigned_user)
+| alter Result = if(status = ENUM.NEW or status = ENUM.UNDER_INVESTIGATION, "Unresolved", "Resolved")
+//| alter resolved = if(status = ENUM.RESOLVED_AUTO_RESOLVE, "Playbook Resolved", Result = "Resolved", "Manually Resolved", "Unresolved")
+//| alter playbook = if(Result = "Playbook Resolved", 1, 0)
+//| alter manual = if(Result = "Manually Resolved", 1, 0)
+| bin _time span=1d timeshift = 3600 timezone = "-05:00"
+| comp count() as Incidents by _time, Result
+| sort desc _time
+| view graph type = line xaxis = _time yaxis = Incidents series = resolved 
