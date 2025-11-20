@@ -1,0 +1,54 @@
+id: external-asn-to-public-facing-asset
+title: External ASN Activity Against Public-Facing Asset
+status: experimental
+description: >
+  XQL hunt that analyzes vulnerability alerts from INTERNET/UNTRUST zones
+  targeting a specific public-facing IP and aggregates by source IP and ASN
+  organization. This surfaces the top organizations scanning or attacking
+  your exposed asset while excluding private source ranges.
+
+author: "Carolina Dietz-Vargas"
+date: 2025-11-20
+platform: cortex-xsiam
+query_language: xql
+
+tags:
+  product: cortex-xsiam
+  use_case: external-attack-surface
+  data_source:
+    - firewall-alerts
+    - vulnerability-alerts
+  mitre_attack:
+    tactic:
+      - TA0043: Reconnaissance
+    technique:
+      - T1595: Active Scanning
+
+parameters:
+  PublicFacingIP:
+    description: Public IP of the asset you want to analyze.
+    type: string
+    example: 203.0.113.10
+
+notes: >
+  - Filters on alerts with category = "Vulnerability" from INTERNET/UNTRUST zones.
+  - Excludes private RFC1918 source IP ranges to focus on true external origin.
+  - Uses iploc() to enrich sources with ASN, ASN org, and country.
+  - Final aggregation shows top source IP + ASN organizations by hit count.
+
+query:
+config case_sensitive = false | dataset = alerts 
+| filter category = "Vulnerability" | filter source_zone_name = "INTERNET" or source_zone_name = {Panorama Source Zones}
+| alter Dest_IP = to_string(arrayindex(remote_ip, 0))
+| alter Source_IP= to_string(arrayindex(local_ip, 0))
+| filter Source_IP not incidr "10.0.0.0/8"
+| filter Source_IP not incidr "172.16.0.0/12"
+| filter Source_IP not incidr "192.168.0.0/16"
+| filter Dest_IP = {PublicFacingIP}
+| iploc Source_IP loc_asn as ASN, loc_country as Source_Country, loc_asn_org as ASN_Org
+| fields alert_name, Source_IP,  local_port as Source_Port,
+         Dest_IP, remote_port as Dest_Port, 
+         remote_host, ASN, Source_Country, ASN_Org ,
+         source_zone_name,destination_zone_name, misc, description,destination_agent_id,action,severity,alert_source,resolution_status,fw_rule_name,destination_zone_name,domain,app_technology,app_id,endpoint_id,  url
+| comp count() as hits by Source_IP, ASN_Org 
+| sort desc hits
