@@ -1,0 +1,30 @@
+title: "Suspicious EXE Execution from AppData (Non-Whitelisted Apps/Vendors)"
+id: "xsiam-appdata-exe-non-whitelist-001"
+status: "experimental"
+description: >
+  Detects processes executing EXE files from user AppData (Local/Roaming/LocalLow)
+  while excluding specific known applications and code-signing vendors.
+author: "Carolina Dietz-Vargas"
+date: "2025-11-21"
+product: "Cortex XSIAM"
+dataset: "xdr_data"
+query: |
+  dataset = xdr_data 
+  | filter event_type = ENUM.PROCESS 
+  | filter actor_process_image_path ~= "(?i)C\:\\Users\\.*\\AppData\\(Local|Roaming|LocalLow)\\[^WebEx|Grammarly|Cisco Spark|CiscoSparkLauncher|Mozilla Firefox].*.exe" | limit 100
+  | filter actor_process_signature_vendor ~= "[^Google LLC|Microsoft Corporation|Dropbox, Inc|Citrix Systems, Inc.|Dell Technologies Inc.]"
+severity: "medium"
+risk_score: 50
+tags:
+  - appdata
+  - execution
+  - fake-browser
+  - pdf-installer
+  - cortex-xsiam
+  - process-monitoring
+falsepositives:
+  - "Legitimate software installed or executed from AppData by design"
+  - "Internally developed tools signed by non-standard vendors"
+tuning:
+  - "Review hits and add additional allowed vendors/app names as needed."
+  - "Adjust limit or scheduling based on environment size."
