@@ -11,8 +11,8 @@ dataset: "xdr_data"
 query: |
   dataset = xdr_data 
   | filter event_type = ENUM.PROCESS 
-  | filter actor_process_image_path ~= "(?i)C\:\\Users\\.*\\AppData\\(Local|Roaming|LocalLow)\\[^WebEx|Grammarly|Cisco Spark|CiscoSparkLauncher|Mozilla Firefox].*.exe" | limit 100
-  | filter actor_process_signature_vendor ~= "[^Google LLC|Microsoft Corporation|Dropbox, Inc|Citrix Systems, Inc.|Dell Technologies Inc.]"
+  | filter actor_process_image_path ~= "(?i)C\:\\Users\\.*\\AppData\\(Local|Roaming|LocalLow)\\[^WebEx|Grammarly|Cisco Spark|CiscoSparkLauncher|Mozilla Firefox].*\.exe" | limit 100
+  | filter actor_process_signature_vendor ~= "[^Google LLC|Microsoft Corporation|Dropbox, Inc|Citrix Systems, Inc.|Dell Technologies Inc.|Autodesk, Inc.]"
 severity: "medium"
 risk_score: 50
 tags:
