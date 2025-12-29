@@ -1,0 +1,66 @@
+title: DNS Queries to Offensive Security Tooling Domains (Kali, Metasploit, Exploit-DB, PortSwigger, Nmap)
+id: 6b4c4f1e-8d0a-4c6a-a0b5-0d7f7d2a7d2b
+status: experimental
+description: |
+  Detects DNS queries to well-known offensive security, penetration testing,
+  and exploit development domains such as Kali Linux, Metasploit, Exploit-DB,
+  PortSwigger, and Nmap.
+
+  This activity may indicate reconnaissance, tool research, staging, or active
+  use of unauthorized security tooling on a corporate endpoint.
+
+  ---
+  Original XSIAM Query:
+
+  dataset = microsoft_dns_raw
+  | fields _time, dstPort, sourceIp, responseCode, protocol, timestamp,
+           _collector_hostname, questionName, questionType, _raw_log
+  | filter (questionType != "SRV")
+  | filter (questionName contains "kali.org")
+           or questionName in (
+             "metasploit.com",
+             "kali.org",
+             "exploit-db.com",
+             "portswigger.net",
+             "burpsuite",
+             "nmap.org"
+           )
+  | join type = left (
+      dataset = xdr_data
+      | fields agent_ip_addresses, action_local_ip,
+               actor_effective_username, agent_hostname
+      | filter action_local_ip = "*"
+               or agent_ip_addresses = "*"
+    ) as ip ip.agent_ip_addresses = sourceIp
+  | dedup sourceIp, timestamp
+  | fields _time, timestamp, questionName, questionType, sourceIp,
+           agent_hostname, actor_effective_username, dstPort,
+           responseCode, protocol, _collector_hostname
+  ---
+references:
+  - https://www.kali.org/
+  - https://www.metasploit.com/
+  - https://www.exploit-db.com/
+  - https://portswigger.net/
+  - https://nmap.org/
+author: Carolina Dietz-Vargas
+date: 2025-12-29
+tags:
+  - attack.discovery
+  - attack.t1046
+  - attack.command_and_control
+logsource:
+  category: dns
+  product: any
+detection:
+  selection_domains_exact:
+    query|equals:
+      - "metasploit.com"
+      - "kali.org"
+      - "exploit-db.com"
+      - "portswigger.net"
+      - "nmap.org"
+      - "burpsuite"
+  selection_domains_contains:
+    query|contains:
+      - "kali.org"
