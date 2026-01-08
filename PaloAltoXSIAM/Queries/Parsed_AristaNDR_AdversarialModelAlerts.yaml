@@ -1,0 +1,25 @@
+/*
+Description: This query parses Arista NDR alerts from raw logs.
+*/
+
+
+dataset = arista_ndr_raw 
+| fields _time, event 
+| alter 
+     model_name = replace(json_extract(event, "$['adversarialModelName']"),"\"", ""),
+     model_path = replace(json_extract(event, "$['adversarialModelPath']"),"\"", ""),
+     attack_stages = replace(json_extract(event, "$['attackStages']"),"\"", ""),
+     source_device = replace(json_extract(event, "$['deviceName']"),"\"", ""),
+     source_device_type = replace(json_extract(event, "$['deviceType']"),"\"", ""),
+     destination = to_json_string(json_extract(event, "$.matchedDestinations[0]")),
+     dest_ip = replace(to_json_string(json_extract(event, "$.matchedDestinations[0].ip")),"\"", ""),
+     destination_raw = to_json_string(json_extract(event, "$.matchedDestinations")),
+     mitre = replace(json_extract(event, "$['modelCategories']"),"\"", ""),
+     os = to_string(replace(json_extract(event, "$['operatingSystem']"),"\"", "")),
+     src_ip = replace(json_extract(event, "$['srcIp']"),"\"", ""),
+     reporting_ip = replace(json_extract(event, "$['_reporting_device_ip']"),"\"", ""),
+     severity = to_string(replace(json_extract(event, "$['riskLevel']"),"\"", ""))
+| alter dest_domain = replace(json_extract(destination, "$['domain']"),"\"", "")
+| fields _time, model_name, source_device, src_ip, source_device_type,os,destination, dest_ip,dest_domain, destination_raw,mitre, reporting_ip, severity, model_path, event, attack_stages,_id 
+| comp count() as attempt_count by _time, model_name, source_device, src_ip, source_device_type, os, destination, dest_ip, dest_domain, destination_raw, mitre, reporting_ip, severity, attack_stages//, event, attack_stages
+| sort desc _time 
