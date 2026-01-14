@@ -2,7 +2,7 @@ id: external-asn-to-public-facing-asset
 title: External ASN Activity Against Public-Facing Asset
 status: experimental
 description: >
-  XQL hunt that analyzes vulnerability alerts from INTERNET/UNTRUST zones
+  XQL hunt that analyzes threat logs from INTERNET/UNTRUSTED zones
   targeting a specific public-facing IP and aggregates by source IP and ASN
   organization. This surfaces the top organizations scanning or attacking
   your exposed asset while excluding private source ranges.
@@ -31,24 +31,25 @@ parameters:
     example: 203.0.113.10
 
 notes: >
-  - Filters on alerts with category = "Vulnerability" from INTERNET/UNTRUST zones.
   - Excludes private RFC1918 source IP ranges to focus on true external origin.
   - Uses iploc() to enrich sources with ASN, ASN org, and country.
   - Final aggregation shows top source IP + ASN organizations by hit count.
 
 query:
-config case_sensitive = false | dataset = alerts 
-| filter category = "Vulnerability" | filter source_zone_name = "INTERNET" or source_zone_name = {Panorama Source Zones}
-| alter Dest_IP = to_string(arrayindex(remote_ip, 0))
-| alter Source_IP= to_string(arrayindex(local_ip, 0))
-| filter Source_IP not incidr "10.0.0.0/8"
-| filter Source_IP not incidr "172.16.0.0/12"
-| filter Source_IP not incidr "192.168.0.0/16"
-| filter Dest_IP = {PublicFacingIP}
-| iploc Source_IP loc_asn as ASN, loc_country as Source_Country, loc_asn_org as ASN_Org
-| fields alert_name, Source_IP,  local_port as Source_Port,
-         Dest_IP, remote_port as Dest_Port, 
-         remote_host, ASN, Source_Country, ASN_Org ,
-         source_zone_name,destination_zone_name, misc, description,destination_agent_id,action,severity,alert_source,resolution_status,fw_rule_name,destination_zone_name,domain,app_technology,app_id,endpoint_id,  url
-| comp count() as hits by Source_IP, ASN_Org 
-| sort desc hits
+config case_sensitive = false | dataset = panw_ngfw_threat_raw
+| fields _time, threat_name, users, app, action, dest_ip, to_zone, log_type, nat_dest, severity, sub_type, _log_type, sub_type, file_name, source_ip, nat_source, url_domain, source_edl, from_zone, source_user, risk_of_app,  app_category, rule_matched, url_category,dest_location, platform_type, source_location, technology_of_app, direction_of_attack 
+| filter from_zone = ${'UNTRUSTED ZONE'}
+| filter severity != "Informational"
+| filter (_log_type = "threat" and sub_type = "vulnerability") or (_log_type = "vulnerability" and sub_type = "threat") or (_log_type = "threat" and sub_type = "spyware") or (_log_type = "spyware" and sub_type = "threat")
+| filter source_ip not incidr "10.0.0.0/8"
+| filter source_ip not incidr "172.16.0.0/12"
+| filter source_ip not incidr "192.168.0.0/16"
+| iploc source_ip loc_asn as ASN, loc_country as Source_Country, loc_asn_org as ASN_Org, loc_city as source_city
+| filter Dest_IP = ${'ENTER YOUR PUBLIC IPS HERE'}
+| fields _time, threat_name, users, app, action, dest_ip, to_zone, log_type, nat_dest, severity, sub_type, _log_type, sub_type, file_name, source_ip, nat_source, url_domain, source_edl, from_zone, source_user, risk_of_app,  app_category, rule_matched, url_category,dest_location, platform_type, source_location, technology_of_app, direction_of_attack, ASN, Source_Country, ASN_Org, source_city
+| bin _time span=1h timeshift = 3600 timezone = "-05:00" 
+| comp count() as counter by _time, source_ip, dest_ip, action, from_zone, to_zone, severity, ASN, Source_Country, ASN_Org, source_city
+| alter alert_if_True = if(((action = "reset-both" and counter >= 100) or (action != "reset-both" and counter >= 10)), 1, 0)
+| filter alert_if_True = 1
+| fields _time, action, source_ip, ASN, Source_Country, ASN_Org, source_city, from_zone, dest_ip, to_zone, severity, counter 
+| sort desc counter 
