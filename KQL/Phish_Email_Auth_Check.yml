@@ -1,0 +1,61 @@
+title: Phishing Email Events with Authentication Results
+id: email-phish-auth-results-001
+status: active
+type: hunting
+description: >
+  Identifies inbound phishing emails detected by Microsoft Defender for Office 365
+  and enriches them with SPF, DKIM, and DMARC authentication results parsed from
+  AuthenticationDetails. This query is useful for analyzing email authentication
+  failures and identifying spoofed or impersonation attempts.
+
+author: Carolina Dietz-Vargas
+date: 2026-01-18
+version: 1.0
+
+data_source:
+  - EmailEvents (Microsoft Defender for Office 365)
+
+query_language: KQL
+query: |
+  EmailEvents
+  | project Timestamp, NetworkMessageId, SenderFromAddress, SenderDisplayName,
+            SenderFromDomain, SenderIPv4, RecipientEmailAddress, Subject,
+            EmailDirection, DeliveryAction, DeliveryLocation, ThreatTypes,
+            DetectionMethods, EmailAction, AuthenticationDetails, UrlCount,
+            EmailLanguage, To, Cc
+  | where isnotempty(ThreatTypes) and ThreatTypes == "Phish"
+  | extend parsed = parse_json(AuthenticationDetails)
+  | extend SPF = parsed.SPF, DKIM = parsed.DKIM, DMARC = parsed.DMARC
+  | project Timestamp, NetworkMessageId,
+            SenderFromAddress, SenderDisplayName, SenderFromDomain, SenderIPv4,
+            RecipientEmailAddress, Subject, EmailDirection, DeliveryAction,
+            DeliveryLocation, ThreatTypes, DetectionMethods, EmailAction,
+            SPF, DKIM, DMARC, UrlCount, EmailLanguage, To, Cc
+
+severity: medium
+
+confidence: high
+
+tactics:
+  - Initial Access
+
+techniques:
+  - T1566.001  # Phishing: Spearphishing Attachment
+  - T1566.002  # Phishing: Spearphishing Link
+
+false_positives:
+  - Legitimate marketing emails incorrectly classified as phishing
+  - Forwarded phishing messages used for user training or reporting
+
+response_actions:
+  - Review SPF, DKIM, and DMARC failures for spoofing indicators
+  - Identify common sender domains or IPs for blocking
+  - Validate whether the email reached the inbox or was quarantined
+  - Use NetworkMessageId to pivot into EmailUrlInfo and EmailAttachmentInfo
+
+tags:
+  - phishing
+  - email-security
+  - defender-for-office365
+  - authentication
+  - detection-engineering
