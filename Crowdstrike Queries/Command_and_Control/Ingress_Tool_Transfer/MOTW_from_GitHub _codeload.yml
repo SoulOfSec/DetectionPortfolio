@@ -1,0 +1,45 @@
+title: MoTW Written After Download from GitHub Codeload
+id: 9c2e6b55-3a9f-4f74-bf3b-7b2d3e7c1105
+status: experimental
+description: |
+  Detects files receiving Mark-of-the-Web (MoTW) tagging after being downloaded
+  from GitHub's codeload service. Attackers sometimes use GitHub to store and deliver malicious files into an organization.
+  This behavior has been observed in real malware campaigns (e.g., Water Curse), where attackers used public GitHub repositories to deliver malicious ZIP payloads.
+
+author: Carolina Dietz-Vargas
+date: 2025/06/16
+references:
+  - https://attack.mitre.org/techniques/T1105/
+  - https://www.trendmicro.com/en_us/research/25/f/water-curse.html
+tags:
+  - attack.command_and_control
+  - attack.t1105
+
+logsource:
+  product: windows
+  category: file_event
+
+detection:
+  selection_motw:
+    EventID: 15 
+    StreamName: "Zone.Identifier"
+
+  selection_github:
+    Contents|contains:
+      - "codeload.github.com"
+
+  condition: selection_motw and selection_github
+
+falsepositives:
+  - Legitimate developer activity downloading repositories or tools from GitHub
+  - Approved internal scripting or automation workflows
+
+level: medium
+
+
+-----------
+
+query_language: CQL/FQL
+query: HostUrl = /codeload\.github\.com\/FrancoK10*/i | HostUrl= /codeload\.github\.com\/Delimbo*/i
+| "#event_simpleName" = MotwWritten
+| table([@timestamp, #event_simpleName, ComputerName, FileName, FilePath, LocalAddressIP4, ReferrerUrl, HostUrl, TargetFileName, aip, Tactic, Technique], limit=20000)
