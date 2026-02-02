@@ -1,0 +1,19 @@
+/*
+Description:
+Detects internet-downloaded files (MoTW) with high-risk extensions where the source host is a known dynamic DNS provider.
+This helps identify suspicious payload delivery prior to execution.
+
+MITRE Mapping:
+- TA0011 Command and Control
+- T1105 Ingress Tool Transfer
+
+Reference:
+- https://github.com/SigmaHQ/sigma/blob/master/rules/web/proxy_generic/proxy_download_susp_dyndns.yml
+*/
+
+
+#event_simpleName = MotwWritten | 
+table([@timestamp,aip,#event_simpleName, CompanyName,FileName,FilePath,HostUrl,ReferrerUrl,LocalAddressIP4,RemoteAddressIP4,Protocol,ZoneIdentifier,Tactic,Technique,TechniqueId], limit = max) 
+//| FileName = /\.js$/i and (ReferrerUrl = /pdf\.zip/i or FilePath = /pdf\.zip/i)
+| FileName = /\.(exe|vbs|bat|rar|ps1|doc|docm|xls|xlsm|pptm|rtf|hta|dll|ws|wsf|sct|zip)$/i
+| HostUrl = /\.(hopto\.org|no-ip\.org|no-ip\.info|no-ip\.biz|no-ip\.com|noip\.com|ddns\.name|myftp\.org|myftp\.biz|serveblog\.net|servebeer\.com|servemp3\.com|serveftp\.com|servequake\.com|servehalflife\.com|servehttp\.com|servegame\.com|servepics\.com|myvnc\.com|dlinkddns\.com|jumpingcrab\.com|ddns\.info|mooo\.com|dns-dns\.com|adultdns\.net|craftx\.biz|ddns01\.com|dns53\.biz|dnsapi\.info|dnsdynamic\.com|dnsdynamic\.net|dnsget\.org|flashserv\.net|ftp21\.net|http01\.com|http80\.info|https443\.com|imap01\.com|kadm5\.com|ns360\.info|proxy8080\.com|sql01\.com|ssh01\.com|ssh22\.net|tftpd\.net|ttl60\.com|ttl60\.org|voip01\.com|wow64\.net|x64\.me|dyndns\.org|dyndns\.info|dyndns\.tv|dyndns-at-home\.com|dnsomatic\.com|zapto\.org|webhop\.net|25u\.com|slyip\.net)$/i
