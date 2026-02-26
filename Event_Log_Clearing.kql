@@ -1,0 +1,3 @@
+DeviceProcessEvents
+| where FileName =~ "wevtutil.exe"
+| where ProcessCommandLine has_any ("cl Security","clear-log")
